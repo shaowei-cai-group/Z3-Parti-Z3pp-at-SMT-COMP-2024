@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+import json
+import logging
+import os
+import subprocess
+import sys
+import threading
+import socket
+import string
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+
+class Runner:
+    def __init__(self, request_directory: str):
+        self.logger = logging.getLogger("Runner")
+        self.logger.setLevel(logging.INFO)
+        self.request_directory = request_directory
+        os.environ['PYTHONUNBUFFERED'] = "1"
+
+    def process_stream(self, stream, str_name, file_handle):
+        line = stream.readline()
+        while line != "":
+            self.logger.info(f"{str_name}: {line}")
+            file_handle.write(line)
+            line = stream.readline()
+
+    def run(self, cmd: list):
+        self.logger.info("Running command: %s", str(cmd))
+
+        stdout_target_loc = os.path.join(self.request_directory, "stdout.log")
+        stderr_target_loc = os.path.join(self.request_directory, "stderr.log")
+
+        with open(stdout_target_loc, "w") as stdout_handle:
+            with open(stderr_target_loc, "w") as stderr_handle:
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    universal_newlines=True, start_new_session=True)
+                stdout_t = threading.Thread(target = self.process_stream, args=(proc.stdout, "STDOUT", stdout_handle))
+                stderr_t = threading.Thread(target = self.process_stream, args=(proc.stderr, "STDERR", stderr_handle))
+                stdout_t.start()
+                stderr_t.start()
+                return_code = proc.wait()
+                stdout_t.join()
+                stderr_t.join()
+
+        return {
+            "stdout": stdout_target_loc,
+            "stderr": stderr_target_loc,
+            "return_code": return_code,
+            "output_directory": self.request_directory
+        }
+
+
+    def get_command(self, request_directory):
+        run_list = [
+            'python3',
+            '/competition/AriParti/run-AriParti-json.py',
+            request_directory
+        ]
+        return run_list
+
+
+class AriPartiParser:
+    @staticmethod
+    def get_result(output_file):
+        with open(output_file) as f:
+            lines = f.readlines()
+            if len(lines) == 0:
+                return "UNKNOWN"
+            result = lines[0]
+            if result == "sat":
+                return "SATISFIABLE"
+            elif result == "unsat":
+                return "UNSATISFIABLE"
+            elif result == "timeout":
+                return "UNKNOWN"
+            else:
+                return "ERROR"
+
+if __name__ == "__main__":
+    request_directory = sys.argv[1]
+    runner = Runner(request_directory)
+    
+    cmd = runner.get_command(request_directory)
+    
+    output = runner.run(cmd)
+    result = AriPartiParser.get_result(output["stdout"])
+    logging.info(f"RESULT: {result}")
+    solver_output = {
+        "return_code": output["return_code"],
+        "result": result,
+        "artifacts": {
+            "stdout_path": output["stdout"],
+            "stderr_path": output["stderr"]
+        }
+    }
+    
+    with open(os.path.join(request_directory, "solver_out.json"), "w+") as f:
+        f.write(json.dumps(solver_output))

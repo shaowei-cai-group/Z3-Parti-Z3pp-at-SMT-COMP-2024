@@ -29,9 +29,9 @@ The VarParti docker images are built on top of the base containers satcomp-infra
 The process of building these base images (as well as many other aspects of building solvers for SAT-Comp) is described in the README.md file in the [SAT-Comp and SMT-Comp Parallel and Cloud Track Instructions](https://github.com/aws-samples/aws-batch-comp-infrastructure-sample) repository.
 Please follow the steps in this repository up to the point at which the base containers have been built.
 
-## How to Build
+## How to Build and Test
 
-Here is an example illustrating how to test our solver:
+Here is an example illustrating how to build and test our solver:
 
 Build the dockers:
 

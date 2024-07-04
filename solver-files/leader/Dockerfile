@@ -33,4 +33,4 @@ COPY resources/test-files /test-files
 # RUN apt-get -y --no-install-recommends install \
 #     vim
 
-# ENTRYPOINT /competition/init_solver.sh ; exec bash
+ENTRYPOINT /competition/init_solver.sh ; exec bash

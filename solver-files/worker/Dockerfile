@@ -23,4 +23,4 @@ RUN chmod +x /competition/worker
 ##//linxi-test
 RUN mkdir /competition/rundir
 
-# ENTRYPOINT /competition/init_solver.sh ; exec bash
+ENTRYPOINT /competition/init_solver.sh ; exec bash
